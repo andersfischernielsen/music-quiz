@@ -2,7 +2,7 @@ import itertools
 import time
 import argparse
 from collections import Counter, defaultdict
-from typing import List, Set, Tuple, Optional
+from typing import List, Set, Tuple
 
 from ortools.sat.python import cp_model
 from wordfreq import top_n_list
@@ -30,10 +30,10 @@ def build_candidates(titles: List[str]) -> List[Tuple[str, Tuple[int,int,int,int
                 cands.append((ch, group))
     return cands
 
-def danish_words_length(n: int, limit: int = 250000) -> List[str]:
+def words_length(lang: str, n: int, limit: int = 250000) -> List[str]:
     out = []
     seen = set()
-    for w in top_n_list("da", limit):
+    for w in top_n_list(lang, limit):
         w = w.lower()
         if len(w) != n:
             continue
@@ -102,8 +102,9 @@ def load_titles_from_file(path: str) -> List[str]:
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="Find disjoint 4-song groups whose shared letters anagram to a Danish word.")
+    p = argparse.ArgumentParser(description="Find disjoint 4-song groups whose shared letters anagram to a word.")
     p.add_argument("titles_file", help="Path to newline-separated song titles.")
+    p.add_argument("--lang", default="da", help="Language code for wordfreq (e.g. 'da', 'en').")
     p.add_argument("--min-len", type=int, default=3, help="Minimum word length to try.")
     p.add_argument("--max-len", type=int, default=None, help="Maximum word length to try (defaults to floor(n_titles/4)).")
     p.add_argument("--max-words", type=int, default=3, help="Max matches to print per word length.")
@@ -169,6 +170,7 @@ def main():
     min_len = max(1, int(args.min_len))
 
     print(f"Loaded {n} titles from: {args.titles_file}")
+    print(f"Word language: {args.lang}")
     print(f"Word lengths: {min_len}..{max_len}")
 
     if max_len < min_len:
@@ -185,7 +187,7 @@ def main():
 
     for m in range(min_len, max_len + 1):
         t0 = time.time()
-        words = danish_words_length(m, limit=int(args.wordfreq_limit))
+        words = words_length(str(args.lang), m, limit=int(args.wordfreq_limit))
 
         found = 0
         print(f"\n=== Length {m} (max {args.max_words} matches) ===")
