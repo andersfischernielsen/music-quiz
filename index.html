@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nytårs-quiz</title>
+    <style>
+      :root {
+        --bg: #0b0f17;
+        --card: #121a27;
+        --text: #e6edf3;
+        --muted: #9fb0c3;
+        --border: #253246;
+        --ok: #2bd576;
+        --bad: #ff5c5c;
+        --warn: #ffd166;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+          Helvetica, Arial;
+        background: radial-gradient(
+          1200px 600px at 20% 0%,
+          #14213b 0%,
+          var(--bg) 50%
+        );
+        color: var(--text);
+      }
+      .wrap {
+        max-width: 1000px;
+        margin: 28px auto;
+        padding: 0 16px 120px;
+      }
+      header {
+        display: grid;
+        gap: 10px;
+        margin-bottom: 18px;
+      }
+      h1 {
+        margin: 0;
+        font-size: 20px;
+      }
+      p {
+        margin: 0;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .grid {
+        display: grid;
+        gap: 14px;
+      }
+      .group {
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.03),
+          rgba(255, 255, 255, 0.01)
+        );
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+      }
+      .group-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .group-title {
+        font-weight: 600;
+      }
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+      .badge.ok {
+        color: var(--ok);
+        border-color: rgba(43, 213, 118, 0.45);
+      }
+      .badge.bad {
+        color: var(--bad);
+        border-color: rgba(255, 92, 92, 0.45);
+      }
+      .badge.warn {
+        color: var(--warn);
+        border-color: rgba(255, 209, 102, 0.45);
+      }
+
+      .song {
+        display: grid;
+        grid-template-columns: 130px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 8px 0;
+        border-top: 1px dashed rgba(37, 50, 70, 0.6);
+      }
+      .song:first-of-type {
+        border-top: none;
+      }
+      .label {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .pin {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .pin input {
+        width: 34px;
+        height: 38px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(18, 26, 39, 0.8);
+        color: var(--text);
+        text-align: center;
+        font-size: 16px;
+        outline: none;
+      }
+      .pin input:focus {
+        border-color: rgba(159, 176, 195, 0.9);
+        box-shadow: 0 0 0 3px rgba(159, 176, 195, 0.15);
+      }
+
+      .final {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        width: min(1000px, calc(100% - 32px));
+        margin-top: 0;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 14px;
+        display: grid;
+        gap: 10px;
+        z-index: 10;
+      }
+
+      .final-backdrop {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: calc(220px + env(safe-area-inset-bottom, 0px));
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0),
+          rgba(0, 0, 0, 0.85)
+        );
+        pointer-events: none;
+        z-index: 5;
+      }
+      .final h2 {
+        margin: 0;
+        font-size: 16px;
+      }
+      .btn {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: rgba(18, 26, 39, 0.8);
+        color: var(--text);
+        padding: 8px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: rgba(159, 176, 195, 0.6);
+      }
+      .small {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .spacer {
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Nytårs-quiz</h1>
+        <p>Find først hver titlen på hver sang (mellemrum er tilladt).</p>
+        <p>
+          Find derefter bogstavet som sangtitlerne deler (ikke inkl. mellemrum).
+        </p>
+        <div class="row">
+          <button class="btn" id="clear">Nulstil</button>
+        </div>
+      </header>
+
+      <div class="grid" id="groups"></div>
+
+      <div class="final-backdrop" aria-hidden="true"></div>
+
+      <section class="final">
+        <div class="row">
+          <h2>Resultat</h2>
+          <div class="spacer"></div>
+        </div>
+        <div class="row">
+          <div class="pin" id="finalPin" aria-label="Final word"></div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const GROUPS = [
+        { id: 1, lengths: [5, 14, 4, 23] },
+        { id: 2, lengths: [7, 9, 15, 8] },
+        { id: 3, lengths: [29, 4, 10, 14] },
+        { id: 4, lengths: [7, 3, 12, 10] },
+        { id: 5, lengths: [14, 9, 14, 9] },
+        { id: 6, lengths: [12, 5, 9, 17] },
+        { id: 7, lengths: [6, 8, 8, 4] },
+        { id: 8, lengths: [14, 8, 3, 12] },
+      ];
+
+      const AUTO_FILL_FINAL_FROM_GROUP_LETTERS = true;
+
+      const STORAGE_KEY = "song-letter-puzzle:v2";
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      }
+
+      function saveState(state) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function emptyState() {
+        return {
+          songs: GROUPS.map((g) =>
+            g.lengths.map((len) => Array.from({ length: len }, () => ""))
+          ),
+          groupLetters: Array.from({ length: GROUPS.length }, () => ""),
+          final: Array.from({ length: GROUPS.length }, () => ""),
+        };
+      }
+
+      function createPinField(mount, len, getAt, setAt, idPrefix) {
+        const el = document.createElement("div");
+        el.className = "pin";
+        el.dataset.len = String(len);
+
+        const inputs = [];
+
+        function focusIndex(i) {
+          const clamped = Math.max(0, Math.min(len - 1, i));
+          inputs[clamped].focus();
+          inputs[clamped].select();
+        }
+
+        function fillFrom(index, text) {
+          const chars = Array.from(text);
+          let i = index;
+          for (const ch of chars) {
+            if (i >= len) break;
+            inputs[i].value = ch;
+            setAt(i, ch);
+            i++;
+          }
+          if (i < len) focusIndex(i);
+          else focusIndex(len - 1);
+        }
+
+        for (let i = 0; i < len; i++) {
+          const inp = document.createElement("input");
+          inp.type = "text";
+          inp.inputMode = "text";
+          inp.autocomplete = "off";
+          inp.autocapitalize = "none";
+          inp.spellcheck = false;
+          inp.maxLength = 2;
+          inp.value = getAt(i) ?? "";
+          inp.id = `${idPrefix}-${i}`;
+          inp.setAttribute("aria-label", `Character ${i + 1} of ${len}`);
+          inputs.push(inp);
+
+          inp.addEventListener("keydown", (e) => {
+            if (e.key === "ArrowLeft") {
+              e.preventDefault();
+              focusIndex(i - 1);
+              return;
+            }
+            if (e.key === "ArrowRight") {
+              e.preventDefault();
+              focusIndex(i + 1);
+              return;
+            }
+            if (e.key === "Backspace") {
+              if (inp.value !== "") {
+                inp.value = "";
+                setAt(i, "");
+                e.preventDefault();
+                return;
+              }
+              if (i > 0) {
+                inputs[i - 1].value = "";
+                setAt(i - 1, "");
+                e.preventDefault();
+                focusIndex(i - 1);
+              }
+              return;
+            }
+            if (e.key === "Enter") {
+              e.preventDefault();
+              const all = Array.from(document.querySelectorAll("input"));
+              const idx = all.indexOf(inp);
+              if (idx >= 0 && idx + 1 < all.length) {
+                all[idx + 1].focus();
+                all[idx + 1].select();
+              }
+            }
+          });
+
+          inp.addEventListener("paste", (e) => {
+            const text = (e.clipboardData || window.clipboardData).getData(
+              "text"
+            );
+            if (!text) return;
+            e.preventDefault();
+            fillFrom(i, text);
+          });
+
+          inp.addEventListener("input", () => {
+            const raw = inp.value;
+            if (raw.length === 0) {
+              setAt(i, "");
+              return;
+            }
+
+            const chars = Array.from(raw);
+            if (chars.length === 1) {
+              const ch = chars[0];
+              inp.value = ch;
+              setAt(i, ch);
+              if (i + 1 < len) focusIndex(i + 1);
+              return;
+            }
+
+            inp.value = "";
+            fillFrom(i, raw);
+          });
+
+          el.appendChild(inp);
+        }
+
+        mount.appendChild(el);
+
+        return {
+          getString: () => inputs.map((x) => x.value).join(""),
+          setString: (s) => {
+            const chars = Array.from(s);
+            for (let i = 0; i < len; i++) {
+              const ch = chars[i] ?? "";
+              inputs[i].value = ch;
+              setAt(i, ch);
+            }
+          },
+        };
+      }
+
+      const groupsMount = document.getElementById("groups");
+      const finalPinMount = document.getElementById("finalPin");
+      const clearBtn = document.getElementById("clear");
+
+      let state = loadState() ?? emptyState();
+
+      function persist() {
+        saveState(state);
+      }
+
+      function render() {
+        groupsMount.innerHTML = "";
+
+        for (let gi = 0; gi < GROUPS.length; gi++) {
+          const g = GROUPS[gi];
+
+          const card = document.createElement("section");
+          card.className = "group";
+
+          const head = document.createElement("div");
+          head.className = "group-head";
+
+          const title = document.createElement("div");
+          title.className = "group-title";
+          title.textContent = `Gruppe ${g.id}`;
+
+          const badge = document.createElement("div");
+          badge.className = "badge";
+          badge.textContent = "Fill all 4 titles";
+
+          head.appendChild(title);
+
+          const manualLetterMount = document.createElement("div");
+          manualLetterMount.style.display = "flex";
+          manualLetterMount.style.gap = "10px";
+          manualLetterMount.style.alignItems = "center";
+
+          const manualLabel = document.createElement("div");
+          manualLabel.className = "label";
+          manualLabel.textContent = "Delt bogstav";
+
+          const manualPin = document.createElement("div");
+
+          createPinField(
+            manualPin,
+            1,
+            () => state.groupLetters?.[gi] ?? "",
+            (_i, v) => {
+              state.groupLetters[gi] = v.toUpperCase();
+              persist();
+              if (AUTO_FILL_FINAL_FROM_GROUP_LETTERS) {
+                const finalInputs = Array.from(
+                  finalPinMount.querySelectorAll("input")
+                );
+                if (finalInputs[gi] && finalInputs[gi].value === "") {
+                  finalInputs[gi].value = state.groupLetters[gi] ?? "";
+                  state.final[gi] = finalInputs[gi].value;
+                  persist();
+                }
+              }
+            },
+            `g${g.id}-letter`
+          );
+
+          manualLetterMount.appendChild(manualLabel);
+          manualLetterMount.appendChild(manualPin);
+
+          head.appendChild(manualLetterMount);
+
+          card.appendChild(head);
+
+          for (let si = 0; si < g.lengths.length; si++) {
+            const row = document.createElement("div");
+            row.className = "song";
+
+            const label = document.createElement("div");
+            label.className = "label";
+            label.textContent = `Sang ${si + 1}`;
+
+            const fieldMount = document.createElement("div");
+
+            createPinField(
+              fieldMount,
+              g.lengths[si],
+              (i) => state.songs[gi][si][i] ?? "",
+              (i, v) => {
+                state.songs[gi][si][i] = v;
+                persist();
+              },
+              `g${g.id}-s${si + 1}`
+            );
+
+            row.appendChild(label);
+            row.appendChild(fieldMount);
+            card.appendChild(row);
+          }
+
+          groupsMount.appendChild(card);
+        }
+
+        finalPinMount.innerHTML = "";
+        createPinField(
+          finalPinMount,
+          GROUPS.length,
+          (i) => state.final?.[i] ?? "",
+          (i, v) => {
+            state.final[i] = v.toUpperCase();
+            persist();
+          },
+          `final`
+        );
+      }
+
+      clearBtn.addEventListener("click", () => {
+        localStorage.removeItem(STORAGE_KEY);
+        state = emptyState();
+        render();
+      });
+
+      render();
+    </script>
+  </body>
+</html>
